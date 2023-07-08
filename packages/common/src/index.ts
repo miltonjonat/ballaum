@@ -1,42 +1,44 @@
-import { ABIInputCodec } from "@deroll/codec";
+import { ABIInputCodec, HeaderInputCodec } from "@deroll/codec";
 
 export * from "./types";
 
 // application codecs
-export const AddMatchCodec = new ABIInputCodec(
-    [
+export const AddMatchCodec = HeaderInputCodec.fromFrameworkMethod(
+    "ballaum",
+    "AddMatch",
+    new ABIInputCodec([
         "string", // tournamentId
         "string", // matchId
         "string", // team1
         "string", // team2
         "uint", // timestamp of the match
-    ],
-    false,
-    ["ballaum", "AddMatch"]
+    ])
 );
 
-export const SetPredictionCodec = new ABIInputCodec(
-    [
+export const SetPredictionCodec = HeaderInputCodec.fromFrameworkMethod(
+    "ballaum",
+    "SetPrediction",
+    new ABIInputCodec([
         "string", // tournamentId
         "string", // matchId
         "uint8", // team1Score
         "uint8", // team2Score
-    ],
-    false,
-    ["ballaum", "SetPrediction"]
+    ])
 );
-export const SetResultCodec = new ABIInputCodec(
-    [
+export const SetResultCodec = HeaderInputCodec.fromFrameworkMethod(
+    "ballaum",
+    "SetResult",
+    new ABIInputCodec([
         "string", // tournamentId
         "string", // matchId
         "uint8", // team1Score
         "uint8", // team2Score
-    ],
-    false,
-    ["ballaum", "SetResult"]
+    ])
 );
-export const TerminateCodec = new ABIInputCodec(
-    ["string"], // tournamentId
-    false,
-    ["ballaum", "Terminate"]
+export const TerminateCodec = HeaderInputCodec.fromFrameworkMethod(
+    "ballaum",
+    "Terminate",
+    new ABIInputCodec(
+        ["string"] // tournamentId
+    )
 );

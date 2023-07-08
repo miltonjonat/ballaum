@@ -1,29 +1,32 @@
-import { AddressBook } from "./addressBook";
-import { ABIInputCodec } from "./codec";
+import { ABIInputCodec, PackedABIInputCodec, HeaderInputCodec } from "./codec";
 
 export * from "./addressBook";
 export * from "./codec";
 export * from "./unpack";
 
 // wallet codecs
-export const EtherDepositCodec = new ABIInputCodec(
-    ["address", "uint256", "bytes"],
-    true
+export const EtherDepositCodec = new PackedABIInputCodec([
+    "address",
+    "uint256",
+    "bytes",
+]);
+export const EtherWithdrawCodec = HeaderInputCodec.fromFrameworkMethod(
+    "wallet",
+    "EtherWithdraw",
+    new PackedABIInputCodec(["uint256", "bytes"])
 );
-export const EtherWithdrawCodec = new ABIInputCodec(
-    ["uint256", "bytes"],
-    true,
-    ["wallet", "Ether_Withdraw"]
-);
-export const ERC20DepositCodec = new ABIInputCodec(
-    ["bool", "address", "address", "uint256", "bytes"],
-    true
-);
-export const ERC20WithdrawCodec = new ABIInputCodec(
-    ["address", "uint256", "bytes"],
-    true,
-    ["wallet", "ERC20_Withdraw"]
+export const ERC20DepositCodec = new PackedABIInputCodec([
+    "bool",
+    "address",
+    "address",
+    "uint256",
+    "bytes",
+]);
+export const ERC20WithdrawCodec = HeaderInputCodec.fromFrameworkMethod(
+    "wallet",
+    "ERC20_Withdraw",
+    new PackedABIInputCodec(["address", "uint256", "bytes"])
 );
 
 // relay codecs
-export const DAppAddressRelayCodec = new ABIInputCodec(["address"], true);
+export const DAppAddressRelayCodec = new PackedABIInputCodec(["address"]);
