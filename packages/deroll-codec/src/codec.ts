@@ -1,11 +1,8 @@
 import { defaultAbiCoder, ParamType, Result } from "@ethersproject/abi";
 import { toUtf8Bytes } from "@ethersproject/strings";
 import { keccak256 } from "@ethersproject/keccak256";
-import { getAddress } from "@ethersproject/address";
 import { pack } from "@ethersproject/solidity";
 import { unpack } from "./unpack";
-
-const HEADER_TYPE = "bytes32";
 
 export interface InputCodec<E, D> {
     encode(value: E): string;
@@ -15,49 +12,75 @@ export interface InputCodec<E, D> {
 export class ABIInputCodec implements InputCodec<string[], Result> {
     public readonly types: string[];
     public readonly header?: string;
-    _encode;
-    _decode;
 
-    constructor(types: string[], packed: boolean, header?: [string, string]) {
-        // defines encode/decode methods depending on `packed`
-        if (packed) {
-            this._encode = pack;
-            this._decode = unpack;
-        } else {
-            this._encode = defaultAbiCoder.encode.bind(defaultAbiCoder);
-            this._decode = defaultAbiCoder.decode.bind(defaultAbiCoder);
-        }
+    constructor(types: string[]) {
+        this.types = types;
+    }
 
-        // defines types and header depending on `header`
-        if (header === undefined) {
-            this.types = types;
-        } else {
-            // we should have a header (framework + method)
-            this.types = [HEADER_TYPE, ...types];
-            // actual header will be keccak256 of keccak256(framework) + keccak256(method)
-            this.header = keccak256(
-                toUtf8Bytes(
-                    keccak256(toUtf8Bytes(header[0])) +
-                        keccak256(toUtf8Bytes(header[1]))
-                )
-            );
-        }
+    _encode(types: string[], values: any[]): string {
+        return defaultAbiCoder.encode(types, values);
+    }
+
+    _decode(types: string[], payload: string): Result {
+        return defaultAbiCoder.decode(types, payload);
     }
 
     public encode(values: any[]): string {
-        if (this.header !== undefined) {
-            return this._encode(this.types, [this.header, ...values]);
-        } else {
-            return this._encode(this.types, values);
-        }
+        return this._encode(this.types, values);
     }
 
     public decode(payload: string): Result {
-        if (this.header !== undefined) {
-            const [_header, ...result] = this._decode(this.types, payload);
-            return result;
-        } else {
-            return this._decode(this.types, payload);
-        }
+        return this._decode(this.types, payload);
+    }
+}
+
+export class PackedABIInputCodec extends ABIInputCodec {
+    constructor(types: string[]) {
+        super(types);
+    }
+
+    _encode(types: string[], values: any[]): string {
+        return pack(types, values);
+    }
+
+    _decode(types: string[], payload: string): Result {
+        return unpack(types, payload);
+    }
+}
+
+export class HeaderInputCodec implements InputCodec<string[], Result> {
+    public readonly header: string;
+    public readonly headerType: string;
+    public readonly codec: ABIInputCodec;
+
+    constructor(header: string, headerType: string, codec: ABIInputCodec) {
+        this.header = header;
+        this.headerType = headerType;
+        this.codec = codec;
+    }
+
+    public static fromFrameworkMethod(
+        framework: string,
+        method: string,
+        codec: ABIInputCodec
+    ): HeaderInputCodec {
+        const header = keccak256(
+            toUtf8Bytes(
+                keccak256(toUtf8Bytes(framework)) +
+                    keccak256(toUtf8Bytes(method))
+            )
+        );
+        return new HeaderInputCodec(header, "bytes32", codec);
+    }
+
+    public encode(values: any[]): string {
+        const types = [this.headerType, ...this.codec.types];
+        return this.codec._encode(types, [this.header, ...values]);
+    }
+
+    public decode(payload: string): Result {
+        const types = [this.headerType, ...this.codec.types];
+        const [_header, ...result] = this.codec._decode(types, payload);
+        return result;
     }
 }
